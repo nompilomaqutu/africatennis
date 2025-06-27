@@ -1,0 +1,131 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Africa Tennis Platform - Serverless Backend
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: nodejs18.x
+    Environment:
+      Variables:
+        SUPABASE_URL:
+          Ref: SupabaseUrl
+        SUPABASE_SERVICE_ROLE_KEY:
+          Ref: SupabaseServiceRoleKey
+        SES_EMAIL_SOURCE:
+          Ref: SesEmailSource
+        FRONTEND_URL:
+          Ref: FrontendUrl
+Parameters:
+  SupabaseUrl:
+    Type: String
+    Description: Supabase project URL
+  SupabaseServiceRoleKey:
+    Type: String
+    Description: Supabase service role key
+    NoEcho: true
+  SesEmailSource:
+    Type: String
+    Description: Email address to send notifications from
+    Default: noreply@africatennis.com
+  FrontendUrl:
+    Type: String
+    Description: URL of the frontend application
+    Default: http://localhost:5173
+Resources:
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowOrigin: '''https://zp1v56uxy8rdx5ypatb0ockcb9tr6a-oci3--5173--858c0e43.local-credentialless.webcontainer-api.io'''
+        AllowHeaders: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+        AllowMethods: '''GET,POST,PUT,DELETE,OPTIONS'''
+    Metadata:
+      SamResourceId: ApiGateway
+  UpdateScoreFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://africa-tennis-artifacts-nathi-2025/84bc934c9a708cea725990ec3f458faf
+      Handler: index.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /matches/{matchId}/score
+            Method: post
+    Metadata:
+      SamResourceId: UpdateScoreFunction
+  GenerateBracketFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://africa-tennis-artifacts-nathi-2025/036f790b9598dd57c0cfefdea99de771
+      Handler: index.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /tournaments/{tournamentId}/generate-bracket
+            Method: post
+    Metadata:
+      SamResourceId: GenerateBracketFunction
+  SendNotificationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://africa-tennis-artifacts-nathi-2025/e772978aa390e8cec1586f0fc5491e50
+      Handler: index.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /notifications/new-match
+            Method: post
+      Policies:
+      - Statement:
+        - Effect: Allow
+          Action:
+          - ses:SendEmail
+          - ses:SendRawEmail
+          Resource: '*'
+    Metadata:
+      SamResourceId: SendNotificationFunction
+  AggregateStatsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://africa-tennis-artifacts-nathi-2025/8bb7a70a11f6fed3a28ebba6d6cf7412
+      Handler: index.handler
+      Events:
+        ScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 2 * * ? *)
+            Name: DailyStatsAggregation
+            Description: Aggregates player statistics daily at 2 AM UTC
+    Metadata:
+      SamResourceId: AggregateStatsFunction
+  GetMatchesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://africa-tennis-artifacts-nathi-2025/7765ded55a8b5fd7562e660390f01f7c
+      Handler: index.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /matches
+            Method: get
+    Metadata:
+      SamResourceId: GetMatchesFunction
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value:
+      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/
