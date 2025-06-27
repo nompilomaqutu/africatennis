@@ -37,8 +37,8 @@ declare global {
 }
 
 // Initialize Supabase client
-const supabaseUrl = Cypress.env('SUPABASE_URL')
-const supabaseKey = Cypress.env('SUPABASE_ANON_KEY')
+const supabaseUrl = Cypress.env('SUPABASE_URL') || 'https://ppuqbimzeplznqdchvve.supabase.co'
+const supabaseKey = Cypress.env('SUPABASE_ANON_KEY') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwdXFiaW16ZXBsem5xZGNodnZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MzcyNjEsImV4cCI6MjA2NTIxMzI2MX0.Yd_QJtBnUYz8GJZHLHYnHDXVzU-ScLKutJhXWRr_qiQ'
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 // Login command

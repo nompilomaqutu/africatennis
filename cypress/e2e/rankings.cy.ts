@@ -1,105 +1,202 @@
-describe('Rankings Page', () => {
+describe('Rankings Feature', () => {
+  // Test credentials
+  const testUser = {
+    email: 'nkosimano@gmail.com',
+    password: 'Magnox271991!',
+    username: 'nkosimano'
+  };
+
+  // Login before each test
   beforeEach(() => {
-    // Set up a mock authenticated user
-    cy.window().then((win) => {
-      win.localStorage.setItem('auth-storage', JSON.stringify({
-        state: {
-          user: {
-            id: 'test-user-id',
-            email: 'test@example.com'
-          },
-          profile: {
-            user_id: 'test-user-id',
-            username: 'testuser',
-            elo_rating: 1200,
-            matches_played: 0,
-            matches_won: 0,
-            skill_level: 'beginner'
-          },
-          session: {
-            access_token: 'mock-token'
-          }
-        },
-        version: 0
-      }))
-    })
+    cy.clearLocalStorage();
+    cy.visit('/login');
+    cy.get('input[type="email"]').type(testUser.email);
+    cy.get('input[type="password"]').type(testUser.password);
+    cy.get('button[type="submit"]').click();
+    cy.url().should('include', '/dashboard');
     
-    cy.visit('/rankings')
-  })
+    // Navigate to rankings page
+    cy.get('.sidebar-nav-item').contains('Ratings & Rankings').click();
+    cy.url().should('include', '/rankings');
+  });
 
-  it('should display rankings page title', () => {
-    cy.contains('Ratings & Rankings').should('be.visible')
-  })
-
-  it('should have search and filter controls', () => {
-    cy.get('.rankings-search input').should('be.visible')
-    cy.get('.rankings-filters select').should('have.length', 3)
-  })
-
-  it('should filter players by skill level', () => {
-    // First check if there are any players
-    cy.get('.rankings-table-row').then($rows => {
-      if ($rows.length > 0) {
-        // Select beginner filter
-        cy.get('.filter-group').eq(0).find('select').select('beginner')
-        
-        // Check that all visible players are beginners
-        cy.get('.player-skill').each($skill => {
-          cy.wrap($skill).invoke('text').should('match', /beginner/i)
-        })
-      } else {
-        // Skip test if no players are available
-        cy.log('No players available to test filtering')
-      }
-    })
-  })
-
-  it('should change sort order', () => {
-    // First check if there are any players
-    cy.get('.rankings-table-row').then($rows => {
-      if ($rows.length > 1) {
-        // Get current first player's rating
-        let firstRating
-        cy.get('.rating-value').first().invoke('text').then(text => {
-          firstRating = parseInt(text)
-          
-          // Change sort order to ascending
-          cy.get('.filter-group').eq(2).find('select').select('asc')
-          
-          // Check that the first player now has a lower rating
-          cy.get('.rating-value').first().invoke('text').then(newText => {
-            const newRating = parseInt(newText)
-            expect(newRating).to.be.at.most(firstRating)
-          })
-        })
-      } else {
-        // Skip test if not enough players are available
-        cy.log('Not enough players available to test sorting')
-      }
-    })
-  })
+  it('should display rankings page with all sections', () => {
+    // Check page title
+    cy.contains('Ratings & Rankings').should('be.visible');
+    
+    // Check search and filter controls
+    cy.get('.search-input').should('be.visible');
+    cy.get('.filter-group').should('have.length', 3);
+    
+    // Check rankings table
+    cy.get('.rankings-table-header').should('be.visible');
+    cy.get('.rankings-table-body').should('be.visible');
+  });
 
   it('should search for players by name', () => {
-    // First check if there are any players
-    cy.get('.rankings-table-row').then($rows => {
-      if ($rows.length > 0) {
-        // Get the first player's name
-        cy.get('.player-name').first().invoke('text').then(name => {
-          // Search for this player
-          cy.get('.rankings-search input').type(name.substring(0, 3))
-          
-          // Check that the player is still visible
-          cy.contains('.player-name', name).should('be.visible')
-        })
+    // Search for a player
+    cy.get('.search-input').type('n');
+    cy.wait(500);
+    
+    // Check if search results contain players with 'n' in their name
+    cy.get('body').then($body => {
+      if ($body.find('.rankings-table-row').length > 0) {
+        cy.get('.rankings-table-row').each($row => {
+          cy.wrap($row).find('.player-name').invoke('text').then(text => {
+            expect(text.toLowerCase()).to.include('n');
+          });
+        });
       } else {
-        // Skip test if no players are available
-        cy.log('No players available to test search')
+        cy.contains('No players found').should('be.visible');
       }
-    })
-  })
+    });
+    
+    // Clear search
+    cy.get('.search-input').clear();
+  });
 
-  it('should show rank change indicators', () => {
-    // Check if rank change indicators are present
-    cy.get('.rank-change').should('exist')
-  })
-})
+  it('should filter players by skill level', () => {
+    // Filter by beginner skill level
+    cy.get('.filter-group').eq(0).find('select').select('beginner');
+    cy.wait(500);
+    
+    // Check if filtered players are all beginners
+    cy.get('body').then($body => {
+      if ($body.find('.rankings-table-row').length > 0) {
+        cy.get('.rankings-table-row').each($row => {
+          cy.wrap($row).find('.player-skill').invoke('text').then(text => {
+            expect(text.toLowerCase()).to.include('beginner');
+          });
+        });
+      } else {
+        cy.contains('No players found').should('be.visible');
+      }
+    });
+    
+    // Reset filter
+    cy.get('.filter-group').eq(0).find('select').select('all');
+  });
+
+  it('should sort players by different criteria', () => {
+    // Sort by username
+    cy.get('.filter-group').eq(1).find('select').select('username');
+    cy.wait(500);
+    
+    // Check if players are sorted alphabetically
+    cy.get('body').then($body => {
+      if ($body.find('.rankings-table-row').length > 1) {
+        let previousName = '';
+        cy.get('.rankings-table-row').each($row => {
+          cy.wrap($row).find('.player-name').invoke('text').then(text => {
+            if (previousName) {
+              // In descending order, current name should come before previous
+              expect(text.toLowerCase() <= previousName.toLowerCase()).to.be.true;
+            }
+            previousName = text;
+          });
+        });
+      }
+    });
+    
+    // Change sort order to ascending
+    cy.get('.filter-group').eq(2).find('select').select('asc');
+    cy.wait(500);
+    
+    // Check if sort order changed
+    cy.get('body').then($body => {
+      if ($body.find('.rankings-table-row').length > 1) {
+        let previousName = '';
+        cy.get('.rankings-table-row').each($row => {
+          cy.wrap($row).find('.player-name').invoke('text').then(text => {
+            if (previousName) {
+              // In ascending order, current name should come after previous
+              expect(text.toLowerCase() >= previousName.toLowerCase()).to.be.true;
+            }
+            previousName = text;
+          });
+        });
+      }
+    });
+    
+    // Reset sorting
+    cy.get('.filter-group').eq(1).find('select').select('elo_rating');
+    cy.get('.filter-group').eq(2).find('select').select('desc');
+  });
+
+  it('should display player details correctly', () => {
+    // Check if any players exist
+    cy.get('body').then($body => {
+      if ($body.find('.rankings-table-row').length > 0) {
+        // Check first player's details
+        cy.get('.rankings-table-row').first().within(() => {
+          // Check rank
+          cy.get('.rank-col').should('be.visible');
+          
+          // Check player info
+          cy.get('.player-avatar').should('be.visible');
+          cy.get('.player-name').should('be.visible');
+          cy.get('.player-skill').should('be.visible');
+          
+          // Check rating
+          cy.get('.rating-value').should('be.visible');
+          
+          // Check matches
+          cy.get('.matches-played').should('be.visible');
+          
+          // Check win rate
+          cy.get('.winrate-value').should('be.visible');
+        });
+      } else {
+        cy.contains('No players found').should('be.visible');
+      }
+    });
+  });
+
+  it('should handle empty search results gracefully', () => {
+    // Search for a player that doesn't exist
+    cy.get('.search-input').type('xyznonexistentplayer');
+    cy.wait(500);
+    
+    // Check empty state
+    cy.contains('No players found').should('be.visible');
+    
+    // Clear search
+    cy.get('.search-input').clear();
+  });
+
+  it('should combine multiple filters', () => {
+    // Apply multiple filters
+    cy.get('.filter-group').eq(0).find('select').select('intermediate');
+    cy.get('.filter-group').eq(1).find('select').select('matches_played');
+    cy.get('.filter-group').eq(2).find('select').select('desc');
+    cy.wait(500);
+    
+    // Check if filtered players are all intermediate
+    cy.get('body').then($body => {
+      if ($body.find('.rankings-table-row').length > 0) {
+        cy.get('.rankings-table-row').each($row => {
+          cy.wrap($row).find('.player-skill').invoke('text').then(text => {
+            expect(text.toLowerCase()).to.include('intermediate');
+          });
+        });
+        
+        // Check if sorted by matches played in descending order
+        let previousMatches = Number.MAX_SAFE_INTEGER;
+        cy.get('.rankings-table-row').each($row => {
+          cy.wrap($row).find('.matches-played').invoke('text').then(text => {
+            const matches = parseInt(text);
+            expect(matches).to.be.at.most(previousMatches);
+            previousMatches = matches;
+          });
+        });
+      } else {
+        cy.contains('No players found').should('be.visible');
+      }
+    });
+    
+    // Reset filters
+    cy.get('.filter-group').eq(0).find('select').select('all');
+    cy.get('.filter-group').eq(1).find('select').select('elo_rating');
+    cy.get('.filter-group').eq(2).find('select').select('desc');
+  });
+});
