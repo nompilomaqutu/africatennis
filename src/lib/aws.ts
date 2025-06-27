@@ -91,6 +91,13 @@ class ApiClient {
   async getMatches(userId: string) {
     return this.request(`/matches?userId=${userId}`);
   }
+  
+  // Match summary generation
+  async generateMatchSummary(matchId: string) {
+    return this.request(`/matches/${matchId}/generate-summary`, {
+      method: 'POST'
+    })
+  }
 
   // Match operations
   async createMatch(matchData: {
@@ -142,10 +149,19 @@ class ApiClient {
     })
   }
   
-  // Match summary generation
-  async generateMatchSummary(matchId: string) {
-    return this.request(`/matches/${matchId}/generate-summary`, {
+  // AI Coach operations
+  async generatePlayerStyle(playerId: string) {
+    return this.request(`/players/${playerId}/generate-style`, {
       method: 'POST'
+    })
+  }
+  
+  // AI Umpire Insight operations
+  async getUmpireInsight(matchId: string, scoreSnapshot?: any) {
+    const body = scoreSnapshot ? JSON.stringify({ scoreSnapshot }) : undefined;
+    return this.request(`/matches/${matchId}/umpire-insight`, {
+      method: 'POST',
+      body
     })
   }
 

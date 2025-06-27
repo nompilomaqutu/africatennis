@@ -137,6 +137,44 @@ Resources:
               - bedrock:InvokeModel
             Resource: '*'
 
+  GeneratePlayerStyleFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/lambdas/generate-player-style/
+      Handler: index.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /players/{playerId}/generate-style
+            Method: post
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+            Resource: '*'
+
+  GetUmpireInsightFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/lambdas/get-umpire-insight/
+      Handler: index.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /matches/{matchId}/umpire-insight
+            Method: post
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+            Resource: '*'
+
   # Health check endpoint
   HealthCheckFunction:
     Type: AWS::Serverless::Function
