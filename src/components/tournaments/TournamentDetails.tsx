@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ArrowLeft, Calendar, MapPin, Trophy, Users, Clock, Target, ChevronRight, CheckCircle, Play, Award, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Calendar, MapPin, Trophy, Users, Clock, Target, ChevronRight, CheckCircle, Play, Award, AlertTriangle, Info } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import LoadingSpinner from '../LoadingSpinner'
 import { useAuthStore } from '../../stores/authStore'
@@ -23,6 +23,14 @@ interface TournamentDetailsProps {
   onBack: () => void
 }
 
+interface ErrorState {
+  visible: boolean;
+  title: string;
+  message: string;
+  details?: string;
+  type: 'error' | 'warning' | 'info';
+}
+
 export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournamentId, onBack }) => {
   const [tournament, setTournament] = useState<Tournament | null>(null)
   const [participants, setParticipants] = useState<TournamentParticipant[]>([])
@@ -33,17 +41,23 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
   const [activeTab, setActiveTab] = useState<'overview' | 'participants' | 'matches'>('overview')
   const [isRegistering, setIsRegistering] = useState(false)
   const [isUnregistering, setIsUnregistering] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [isGeneratingBracket, setIsGeneratingBracket] = useState(false)
   const [bracketGenerationSuccess, setBracketGenerationSuccess] = useState(false)
   const [isClosingRegistration, setIsClosingRegistration] = useState(false)
+  const [error, setError] = useState<ErrorState>({
+    visible: false,
+    title: '',
+    message: '',
+    details: '',
+    type: 'error'
+  });
   
   const user = useAuthStore(state => state.user)
 
   useEffect(() => {
     const fetchTournamentDetails = async () => {
       setLoading(true)
-      setError(null)
+      setError({...error, visible: false})
       try {
         // Fetch tournament data
         const { data: tournamentData, error: tournamentError } = await supabase
@@ -96,7 +110,13 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
         setMatches(matchesData || [])
       } catch (error: any) {
         console.error('Error fetching tournament details:', error)
-        setError(error.message)
+        setError({
+          visible: true,
+          title: 'Error Loading Tournament',
+          message: 'We couldn\'t load the tournament details.',
+          details: error.message,
+          type: 'error'
+        })
       } finally {
         setLoading(false)
       }
@@ -141,7 +161,7 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
   const handleRegister = async () => {
     if (!user || !tournament) return
     setIsRegistering(true)
-    setError(null)
+    setError({...error, visible: false})
 
     try {
       // Check if tournament is full
@@ -166,7 +186,13 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
       setIsRegistered(true)
     } catch (error: any) {
       console.error('Error registering for tournament:', error)
-      setError(`Failed to register: ${error.message}`)
+      setError({
+        visible: true,
+        title: 'Registration Failed',
+        message: `We couldn't register you for this tournament: ${error.message}`,
+        details: error.message,
+        type: 'error'
+      })
     } finally {
       setIsRegistering(false)
     }
@@ -175,7 +201,7 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
   const handleUnregister = async () => {
     if (!user || !tournament) return
     setIsUnregistering(true)
-    setError(null)
+    setError({...error, visible: false})
 
     try {
       // Check if tournament is still open for registration
@@ -194,7 +220,13 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
       setIsRegistered(false)
     } catch (error: any) {
       console.error('Error unregistering from tournament:', error)
-      setError(`Failed to withdraw: ${error.message}`)
+      setError({
+        visible: true,
+        title: 'Withdrawal Failed',
+        message: `We couldn't withdraw you from this tournament: ${error.message}`,
+        details: error.message,
+        type: 'error'
+      })
     } finally {
       setIsUnregistering(false)
     }
@@ -203,7 +235,7 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
   const handleCloseRegistration = async () => {
     if (!tournament) return
     setIsClosingRegistration(true)
-    setError(null)
+    setError({...error, visible: false})
 
     try {
       // Update tournament status to registration_closed
@@ -221,7 +253,13 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
       await handleGenerateBracket()
     } catch (error: any) {
       console.error('Error closing registration:', error)
-      setError(`Failed to close registration: ${error.message}`)
+      setError({
+        visible: true,
+        title: 'Failed to Close Registration',
+        message: `We couldn't close registration for this tournament: ${error.message}`,
+        details: error.message,
+        type: 'error'
+      })
     } finally {
       setIsClosingRegistration(false)
     }
@@ -230,7 +268,7 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
   const handleGenerateBracket = async () => {
     if (!tournament) return
     setIsGeneratingBracket(true)
-    setError(null)
+    setError({...error, visible: false})
     setBracketGenerationSuccess(false)
 
     try {
@@ -249,16 +287,46 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
       }, 3000)
     } catch (error: any) {
       console.error('Error generating bracket:', error)
-      setError(`Failed to generate bracket: ${error.message}`)
+      
+      // Set user-friendly error message
+      setError({
+        visible: true,
+        title: 'Bracket Generation Failed',
+        message: getTournamentErrorMessage(error.message),
+        details: error.message,
+        type: 'error'
+      })
     } finally {
       setIsGeneratingBracket(false)
     }
   }
 
+  // Function to get user-friendly error messages
+  const getTournamentErrorMessage = (errorMessage: string): string => {
+    if (errorMessage.includes('Tournament needs at least 2 participants')) {
+      return 'This tournament needs at least 2 registered participants before the bracket can be generated.';
+    }
+    
+    if (errorMessage.includes('not in registration_closed status')) {
+      return 'The tournament must be in "Registration Closed" status before generating the bracket.';
+    }
+    
+    if (errorMessage.includes('already in progress')) {
+      return 'This tournament is already in progress.';
+    }
+    
+    if (errorMessage.includes('already completed')) {
+      return 'This tournament has already been completed.';
+    }
+    
+    // Default message
+    return 'We encountered an issue generating the tournament bracket. Please try again or contact support if the problem persists.';
+  };
+
   const handleManuallyStartTournament = async () => {
     if (!tournament) return
     setIsGeneratingBracket(true)
-    setError(null)
+    setError({...error, visible: false})
     setBracketGenerationSuccess(false)
 
     try {
@@ -281,11 +349,21 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
       }, 3000)
     } catch (error: any) {
       console.error('Error starting tournament:', error)
-      setError(`We couldn't start the tournament: ${error.message}. Please check the tournament details and try again.`)
+      setError({
+        visible: true,
+        title: 'Tournament Start Failed',
+        message: getTournamentErrorMessage(error.message),
+        details: error.message,
+        type: 'error'
+      })
     } finally {
       setIsGeneratingBracket(false)
     }
   }
+
+  const dismissError = () => {
+    setError({...error, visible: false});
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -328,10 +406,10 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
     )
   }
 
-  if (error && !tournament) {
+  if (error.visible && !tournament) {
     return (
       <div className="text-center py-12">
-        <h3 className="text-lg font-medium text-error-pink">Error: {error}</h3>
+        <h3 className="text-lg font-medium text-error-pink">Error: {error.message}</h3>
         <button
           onClick={onBack}
           className="mt-4 btn btn-primary"
@@ -397,9 +475,47 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
         <p style={{ color: 'var(--text-subtle)' }}>{tournament.description}</p>
 
         {/* Error message */}
-        {error && (
-          <div className="mt-4 p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-sm text-red-800 dark:text-red-400">
-            {error}
+        {error.visible && (
+          <div className={`mt-4 p-4 rounded-md ${
+            error.type === 'error' ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : 
+            error.type === 'warning' ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800' : 
+            'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                {error.type === 'error' && <AlertTriangle className="h-5 w-5 text-red-800 dark:text-red-400" />}
+                {error.type === 'warning' && <AlertTriangle className="h-5 w-5 text-yellow-800 dark:text-yellow-400" />}
+                {error.type === 'info' && <Info className="h-5 w-5 text-blue-800 dark:text-blue-400" />}
+              </div>
+              <div className="flex-1">
+                <h3 className={`text-lg font-medium mb-1 ${
+                  error.type === 'error' ? 'text-red-800 dark:text-red-400' : 
+                  error.type === 'warning' ? 'text-yellow-800 dark:text-yellow-400' : 
+                  'text-blue-800 dark:text-blue-400'
+                }`}>
+                  {error.title}
+                </h3>
+                <p className={`${
+                  error.type === 'error' ? 'text-red-700 dark:text-red-300' : 
+                  error.type === 'warning' ? 'text-yellow-700 dark:text-yellow-300' : 
+                  'text-blue-700 dark:text-blue-300'
+                }`}>{error.message}</p>
+                {error.details && (
+                  <details className="mt-2">
+                    <summary className="text-sm cursor-pointer">Technical details</summary>
+                    <p className="mt-1 text-sm bg-bg-elevated p-2 rounded">{error.details}</p>
+                  </details>
+                )}
+                <div className="mt-3">
+                  <button 
+                    onClick={dismissError}
+                    className="text-sm font-medium px-3 py-1 rounded-md bg-bg-elevated hover:bg-hover-bg"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -421,8 +537,8 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={handleCloseRegistration}
-                disabled={isClosingRegistration || isGeneratingBracket}
-                className="btn btn-primary"
+                disabled={isClosingRegistration || isGeneratingBracket || participants.length < 2}
+                className={`btn btn-primary ${participants.length < 2 ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {isClosingRegistration ? (
                   <div className="flex items-center">
@@ -439,8 +555,8 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
               
               <button
                 onClick={handleManuallyStartTournament}
-                disabled={isGeneratingBracket || isClosingRegistration}
-                className="btn btn-secondary"
+                disabled={isGeneratingBracket || isClosingRegistration || participants.length < 2}
+                className={`btn btn-secondary ${participants.length < 2 ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {isGeneratingBracket ? (
                   <div className="flex items-center">
@@ -455,6 +571,17 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
                 )}
               </button>
             </div>
+            
+            {participants.length < 2 && (
+              <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md border border-yellow-200 dark:border-yellow-800">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-5 w-5 text-yellow-700 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-yellow-700 dark:text-yellow-500">
+                    At least 2 participants are required to start a tournament. Currently there {participants.length === 1 ? 'is' : 'are'} only {participants.length} {participants.length === 1 ? 'participant' : 'participants'}.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -463,8 +590,8 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
           <div className="mt-4">
             <button
               onClick={handleGenerateBracket}
-              disabled={isGeneratingBracket}
-              className="btn btn-primary"
+              disabled={isGeneratingBracket || participants.length < 2}
+              className={`btn btn-primary ${participants.length < 2 ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {isGeneratingBracket ? (
                 <div className="flex items-center">
@@ -481,6 +608,17 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
             <p className="mt-2 text-sm" style={{ color: 'var(--text-subtle)' }}>
               As the tournament organizer, you can manually generate the bracket to start the tournament.
             </p>
+            
+            {participants.length < 2 && (
+              <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md border border-yellow-200 dark:border-yellow-800">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-5 w-5 text-yellow-700 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-yellow-700 dark:text-yellow-500">
+                    At least 2 participants are required to generate a bracket. Currently there {participants.length === 1 ? 'is' : 'are'} only {participants.length} {participants.length === 1 ? 'participant' : 'participants'}.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -781,8 +919,8 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
                   <div className="mt-6">
                     <button
                       onClick={handleCloseRegistration}
-                      disabled={isClosingRegistration || isGeneratingBracket}
-                      className="btn btn-primary"
+                      disabled={isClosingRegistration || isGeneratingBracket || participants.length < 2}
+                      className={`btn btn-primary ${participants.length < 2 ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       {isClosingRegistration ? (
                         <div className="flex items-center">
@@ -796,6 +934,18 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
                         </>
                       )}
                     </button>
+                    
+                    {participants.length < 2 && (
+                      <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md border border-yellow-200 dark:border-yellow-800">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="h-5 w-5 text-yellow-700 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-yellow-700 dark:text-yellow-500">
+                            At least 2 participants are required to start a tournament. Currently there {participants.length === 1 ? 'is' : 'are'} only {participants.length} {participants.length === 1 ? 'participant' : 'participants'}.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
                     <p className="mt-2 text-sm" style={{ color: 'var(--text-subtle)' }}>
                       As the tournament organizer, you can manually close registration and generate the bracket.
                     </p>
@@ -806,8 +956,8 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
                   <div className="mt-6">
                     <button
                       onClick={handleGenerateBracket}
-                      disabled={isGeneratingBracket}
-                      className="btn btn-primary"
+                      disabled={isGeneratingBracket || participants.length < 2}
+                      className={`btn btn-primary ${participants.length < 2 ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       {isGeneratingBracket ? (
                         <div className="flex items-center">
@@ -821,6 +971,18 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
                         </>
                       )}
                     </button>
+                    
+                    {participants.length < 2 && (
+                      <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md border border-yellow-200 dark:border-yellow-800">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="h-5 w-5 text-yellow-700 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-yellow-700 dark:text-yellow-500">
+                            At least 2 participants are required to generate a bracket. Currently there {participants.length === 1 ? 'is' : 'are'} only {participants.length} {participants.length === 1 ? 'participant' : 'participants'}.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
                     <p className="mt-2 text-sm" style={{ color: 'var(--text-subtle)' }}>
                       As the tournament organizer, you can manually generate the bracket to start the tournament.
                     </p>
