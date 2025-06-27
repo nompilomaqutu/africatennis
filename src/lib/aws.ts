@@ -1,3 +1,5 @@
+import { createClient } from '@supabase/supabase-js';
+
 // Use a relative path for the proxy during development.
 // The VITE_API_BASE_URL from .env will be used for production builds.
 const API_BASE_URL = import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL || '');
@@ -132,13 +134,6 @@ class ApiClient {
     return this.request(`/matches/${matchId}/score`, {
       method: 'POST',
       body: JSON.stringify(data)
-    })
-  }
-
-  // Match summary generation
-  async generateMatchSummary(matchId: string) {
-    return this.request(`/matches/${matchId}/generate-summary`, {
-      method: 'POST'
     })
   }
 

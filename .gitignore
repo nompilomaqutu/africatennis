@@ -6,7 +6,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-.env
 
 node_modules
 dist
@@ -24,6 +23,22 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment files
+# Environment variables
 .env
-cypress.env.json
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# AWS credentials and config
+aws/credentials.json
+aws/config.json
+aws/.aws-sam
+
+# Build artifacts
+build/
+.aws-sam/
+packaged.yaml
+
+# Supabase
+.supabase/
