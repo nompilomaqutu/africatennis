@@ -286,7 +286,7 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
         setBracketGenerationSuccess(false)
       }, 3000)
     } catch (error: any) {
-      console.error('Error generating bracket:', error)
+      console.error('Error generating bracket:', error);
       
       // Set user-friendly error message
       setError({
@@ -906,9 +906,9 @@ export const TournamentDetails: React.FC<TournamentDetailsProps> = ({ tournament
             
             {matches.length === 0 ? (
               <div className="text-center py-12 bg-bg-elevated rounded-lg">
-                <Trophy className="mx-auto h-12 w-12" style={{ color: 'var(--text-muted)' }} />
-                <h3 className="mt-2 text-sm font-medium" style={{ color: 'var(--text-standard)' }}>No matches scheduled yet</h3>
-                <p className="mt-1 text-sm" style={{ color: 'var(--text-subtle)' }}>
+                <Trophy className="mx-auto h-12 w-12 text-text-muted" />
+                <h3 className="mt-2 text-sm font-medium text-text-standard">No matches scheduled yet</h3>
+                <p className="mt-1 text-sm text-text-subtle">
                   {tournament.status === 'registration_open' 
                     ? 'Matches will be created when the tournament is full or registration closes.'
                     : 'Matches will be created when the tournament begins.'}

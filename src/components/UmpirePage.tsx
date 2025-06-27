@@ -275,6 +275,10 @@ const UmpirePage: React.FC = () => {
     }
   };
 
+  const dismissError = () => {
+    setError({...error, visible: false});
+  };
+
   const getMatchStatus = (match: Match) => {
     if (match.status === 'completed') return 'Completed';
     if (match.status === 'in_progress') return 'In Progress';
@@ -294,10 +298,6 @@ const UmpirePage: React.FC = () => {
     
     if (tournament.organizer_id === user.id) return 'Organizer';
     return '';
-  };
-
-  const dismissError = () => {
-    setError({...error, visible: false});
   };
 
   // Show match details if one is selected
