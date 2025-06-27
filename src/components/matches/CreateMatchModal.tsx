@@ -143,11 +143,11 @@ const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
       const matchDateTime = new Date(`${formData.date}T${formData.time}`);
       const locationWithDetails = `${formData.location}${formData.courtType !== 'hard' ? ` (${formData.courtType} court)` : ''}`;
       
-      // Use profile.user_id instead of user.id to match the foreign key reference
+      // Use user.id (which corresponds to auth.uid()) to satisfy RLS policy
       const { data, error } = await supabase
         .from('matches')
         .insert({
-          player1_id: profile.user_id,
+          player1_id: user.id, // Use user.id instead of profile.user_id
           player2_id: selectedPlayer.user_id,
           date: matchDateTime.toISOString(),
           location: locationWithDetails,
