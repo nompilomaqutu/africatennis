@@ -135,7 +135,7 @@ const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user || !selectedPlayer || !validateForm()) return;
+    if (!user || !profile || !selectedPlayer || !validateForm()) return;
 
     setIsSubmitting(true);
 
@@ -143,10 +143,11 @@ const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
       const matchDateTime = new Date(`${formData.date}T${formData.time}`);
       const locationWithDetails = `${formData.location}${formData.courtType !== 'hard' ? ` (${formData.courtType} court)` : ''}`;
       
+      // Use profile.user_id instead of user.id to match the foreign key reference
       const { data, error } = await supabase
         .from('matches')
         .insert({
-          player1_id: user.id,
+          player1_id: profile.user_id,
           player2_id: selectedPlayer.user_id,
           date: matchDateTime.toISOString(),
           location: locationWithDetails,
@@ -155,7 +156,10 @@ const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error details:', error);
+        throw error;
+      }
 
       onMatchCreated();
       onClose();
@@ -473,7 +477,7 @@ const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !selectedPlayer}
+              disabled={isSubmitting || !selectedPlayer || !profile}
               className="btn btn-primary btn-glare flex-1"
             >
               {isSubmitting ? (
