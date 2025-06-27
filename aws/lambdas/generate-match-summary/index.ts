@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 // Initialize Bedrock client
-const bedrockClient = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-east-1' });
+const bedrockClient = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-west-2' });
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   // Handle preflight OPTIONS request
@@ -113,11 +113,6 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       }
     }
 
-    // Determine match duration (if available)
-    const matchDate = new Date(match.date);
-    const currentDate = new Date();
-    const matchDuration = Math.floor((currentDate.getTime() - matchDate.getTime()) / (1000 * 60)); // in minutes
-    
     // Construct prompt for Bedrock
     const prompt = `
     <human>
@@ -135,28 +130,49 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     `;
 
     // Call Amazon Bedrock to generate the summary
-    const modelId = 'anthropic.claude-v2'; // Using Claude v2 model
+    const modelId = 'anthropic.claude-3-sonnet-20240229-v1:0'; // Using Claude 3 Sonnet
     
     const bedrockParams = {
       modelId: modelId,
       contentType: 'application/json',
       accept: 'application/json',
       body: JSON.stringify({
-        prompt: prompt,
-        max_tokens_to_sample: 500,
+        anthropic_version: "bedrock-2023-05-31",
+        max_tokens: 500,
         temperature: 0.7,
-        top_k: 250,
-        top_p: 0.999,
-        stop_sequences: ["</answer>", "\n\nHuman:"]
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ]
       })
     };
+
+    console.log('Calling Bedrock with params:', JSON.stringify(bedrockParams, null, 2));
 
     const command = new InvokeModelCommand(bedrockParams);
     const bedrockResponse = await bedrockClient.send(command);
     
     // Parse the response
     const responseBody = JSON.parse(new TextDecoder().decode(bedrockResponse.body));
-    let generatedSummary = responseBody.completion || '';
+    console.log('Bedrock response:', JSON.stringify(responseBody, null, 2));
+    
+    let generatedSummary = '';
+    
+    // Handle different response formats based on the model
+    if (responseBody.content && Array.isArray(responseBody.content)) {
+      // Claude 3 format
+      generatedSummary = responseBody.content
+        .filter((item: any) => item.type === 'text')
+        .map((item: any) => item.text)
+        .join('');
+    } else if (responseBody.completion) {
+      // Claude 2 format
+      generatedSummary = responseBody.completion;
+    } else {
+      throw new Error('Unexpected response format from Bedrock');
+    }
     
     // Clean up the summary
     generatedSummary = generatedSummary.trim();
@@ -189,7 +205,11 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({ success: false, error: 'An unexpected error occurred' })
+      body: JSON.stringify({ 
+        success: false, 
+        error: 'An unexpected error occurred',
+        details: error.message
+      })
     };
   }
 };

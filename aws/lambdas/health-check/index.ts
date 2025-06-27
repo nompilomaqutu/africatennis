@@ -1,4 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 
 // CORS headers for all responses
 const corsHeaders = {
@@ -22,6 +23,16 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const supabaseUrl = process.env.SUPABASE_URL;
     const frontendUrl = process.env.FRONTEND_URL;
     
+    // Check if Bedrock is available
+    let bedrockStatus = 'unknown';
+    try {
+      const bedrockClient = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-west-2' });
+      bedrockStatus = 'available';
+    } catch (error) {
+      console.error('Bedrock client initialization error:', error);
+      bedrockStatus = 'unavailable';
+    }
+    
     // Return health status
     return {
       statusCode: 200,
@@ -32,7 +43,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         environment: {
           supabaseConfigured: !!supabaseUrl,
           frontendConfigured: !!frontendUrl,
-          region: process.env.AWS_REGION || 'unknown'
+          region: process.env.AWS_REGION || 'unknown',
+          bedrockStatus: bedrockStatus
         },
         version: '1.0.0'
       })
