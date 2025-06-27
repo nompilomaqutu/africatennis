@@ -2,6 +2,51 @@
 
 This directory contains the AWS Lambda functions used by the Africa Tennis Platform.
 
+## Deployment Instructions
+
+### Prerequisites
+
+1. Install AWS CLI:
+   - [AWS CLI Installation Guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+
+2. Configure AWS credentials:
+   ```bash
+   aws configure
+   ```
+   You'll need to provide:
+   - AWS Access Key ID
+   - AWS Secret Access Key
+   - Default region (e.g., us-east-1)
+   - Default output format (json)
+
+3. Set Supabase service role key as an environment variable:
+   ```bash
+   export SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   ```
+
+### Deployment
+
+Run the deployment script:
+
+```bash
+# Make the script executable
+chmod +x ./aws/deploy.sh
+
+# Run the deployment
+cd aws
+./deploy.sh
+```
+
+### Check Deployment Status
+
+```bash
+# Make the script executable
+chmod +x ./aws/check-deployment.sh
+
+# Check status
+./aws/check-deployment.sh
+```
+
 ## Functions
 
 ### 1. Update Score (`update-score`)
@@ -30,35 +75,32 @@ This directory contains the AWS Lambda functions used by the Africa Tennis Platf
 - **Purpose**: Pre-calculates complex player statistics for analytics
 - **Parameters**: None (runs on schedule)
 
-## Deployment
+### 5. Get Matches Function (`get-matches`)
+- **Trigger**: API Gateway - GET /matches
+- **Purpose**: Retrieves match data for a specific user with optimized queries and joins
+- **Parameters**:
+  - `userId`: Query parameter - ID of the user whose matches to retrieve
 
-These functions are deployed using AWS SAM or the AWS CDK. Environment variables required:
+## Troubleshooting
 
-- `SUPABASE_URL`: Your Supabase project URL
-- `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key
-- `SES_EMAIL_SOURCE`: Email address to send notifications from
-- `FRONTEND_URL`: URL of the frontend application
+If you encounter issues with deployment:
 
-## Local Development
+1. Check AWS credentials:
+   ```bash
+   aws sts get-caller-identity
+   ```
 
-1. Install dependencies:
-```
-npm install
-```
+2. Ensure S3 bucket exists:
+   ```bash
+   aws s3 ls s3://africa-tennis-artifacts-nathi-2025
+   ```
 
-2. Build the TypeScript code:
-```
-npm run build
-```
+3. Check CloudFormation stack status:
+   ```bash
+   aws cloudformation describe-stacks --stack-name africa-tennis-platform-stack
+   ```
 
-3. Test locally:
-```
-npm test
-```
-
-## Adding New Functions
-
-1. Create a new directory under `lambdas/`
-2. Add your function code
-3. Update the deployment configuration
-4. Deploy using AWS SAM or CDK
+4. View CloudWatch logs for Lambda functions:
+   ```bash
+   aws logs describe-log-groups --query "logGroups[?contains(logGroupName, 'africa-tennis')].logGroupName"
+   ```
