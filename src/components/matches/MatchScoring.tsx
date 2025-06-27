@@ -6,12 +6,15 @@ import {
   AlertTriangle,
   CheckCircle,
   ArrowLeft,
-  RotateCcw
+  RotateCcw,
+  Sparkles,
+  X
 } from 'lucide-react';
 import LoadingSpinner from '../LoadingSpinner';
 import { useMatchMutations } from '../../hooks/useMatchMutations';
 import { useAuthStore } from '../../stores/authStore';
 import { supabase } from '../../lib/supabase';
+import { apiClient } from '../../lib/aws';
 import type { Database } from '../../types/database';
 
 type Match = Database['public']['Tables']['matches']['Row'] & {
@@ -44,7 +47,21 @@ interface TennisScore {
   is_tiebreak: boolean;
 }
 
-export const MatchScoring: React.FC<MatchScoringProps> = ({ match, onBack }) => {
+interface MatchScoreHistory {
+  score: TennisScore;
+  timestamp: number;
+  action: string;
+}
+
+interface UmpireInsight {
+  insight: string;
+  timestamp: string;
+}
+
+const MatchScoring: React.FC<MatchScoringProps> = ({ 
+  match, 
+  onBack
+}) => {
   const { user } = useAuthStore();
   const [score, setScore] = useState<TennisScore | null>(null);
   const [pointType, setPointType] = useState<PointType>('point_won');
@@ -53,8 +70,14 @@ export const MatchScoring: React.FC<MatchScoringProps> = ({ match, onBack }) => 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [confirmEndMatch, setConfirmEndMatch] = useState(false);
   const [lastPointPlayerId, setLastPointPlayerId] = useState<string | null>(null);
-  const [scoreHistory, setScoreHistory] = useState<TennisScore[]>([]);
+  const [scoreHistory, setScoreHistory] = useState<MatchScoreHistory[]>([]);
+  const [player1Profile, setPlayer1Profile] = useState<any>(null);
+  const [player2Profile, setPlayer2Profile] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const scoreRef = useRef<TennisScore | null>(null);
+  const [umpireInsight, setUmpireInsight] = useState<UmpireInsight | null>(null);
+  const [isGeneratingInsight, setIsGeneratingInsight] = useState(false);
+  const [showInsight, setShowInsight] = useState(false);
 
   const { awardPoint, updateMatch } = useMatchMutations(user?.id ?? '');
 
@@ -67,7 +90,11 @@ export const MatchScoring: React.FC<MatchScoringProps> = ({ match, onBack }) => 
           scoreRef.current = parsedScore;
           
           // Initialize score history with current score
-          setScoreHistory([parsedScore]);
+          setScoreHistory([{
+            score: parsedScore,
+            timestamp: Date.now(),
+            action: 'initial'
+          }]);
         } catch (err) {
           console.error('Error parsing score:', err);
           setError('Error loading match score');
@@ -85,7 +112,11 @@ export const MatchScoring: React.FC<MatchScoringProps> = ({ match, onBack }) => 
         };
         setScore(defaultScore);
         scoreRef.current = defaultScore;
-        setScoreHistory([defaultScore]);
+        setScoreHistory([{
+          score: defaultScore,
+          timestamp: Date.now(),
+          action: 'initial'
+        }]);
       }
     };
 
@@ -108,7 +139,11 @@ export const MatchScoring: React.FC<MatchScoringProps> = ({ match, onBack }) => 
             scoreRef.current = newScore;
             
             // Add to score history
-            setScoreHistory(prev => [...prev, newScore]);
+            setScoreHistory(prev => [...prev, {
+              score: newScore,
+              timestamp: Date.now(),
+              action: 'update'
+            }]);
 
             if (payload.new.status === 'completed') {
               setSuccessMessage('Match completed!');
@@ -162,7 +197,7 @@ export const MatchScoring: React.FC<MatchScoringProps> = ({ match, onBack }) => 
         // Remove the current score and go back to the previous one
         const newHistory = [...scoreHistory];
         newHistory.pop(); // Remove current score
-        const previousScore = newHistory[newHistory.length - 1];
+        const previousScore = newHistory[newHistory.length - 1].score;
         
         // Update the match with the previous score
         updateMatch.mutate({
@@ -260,6 +295,34 @@ export const MatchScoring: React.FC<MatchScoringProps> = ({ match, onBack }) => 
     }
   };
 
+  const handleGetUmpireInsight = async () => {
+    if (!score) return;
+    
+    setIsGeneratingInsight(true);
+    setError(null);
+    
+    try {
+      const response = await apiClient.getUmpireInsight(match.id, score);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to get umpire insight');
+      }
+      
+      setUmpireInsight(response.data);
+      setShowInsight(true);
+      
+      // Auto-hide insight after 10 seconds
+      setTimeout(() => {
+        setShowInsight(false);
+      }, 10000);
+    } catch (err: any) {
+      console.error('Error getting umpire insight:', err);
+      setError(`Failed to get umpire insight: ${err.message}`);
+    } finally {
+      setIsGeneratingInsight(false);
+    }
+  };
+
   if (!score) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -303,6 +366,28 @@ export const MatchScoring: React.FC<MatchScoringProps> = ({ match, onBack }) => 
             <div className="flex items-center">
               <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
               <span>{successMessage}</span>
+            </div>
+          </div>
+        )}
+
+        {/* AI Umpire Insight */}
+        {showInsight && umpireInsight && (
+          <div className="bg-quantum-cyan bg-opacity-10 border border-quantum-cyan border-opacity-20 rounded-lg p-4 mb-4 relative">
+            <button 
+              onClick={() => setShowInsight(false)}
+              className="absolute top-2 right-2 text-text-subtle hover:text-text-standard"
+            >
+              <X size={16} />
+            </button>
+            <div className="flex items-start gap-3">
+              <Sparkles className="h-5 w-5 text-quantum-cyan flex-shrink-0 mt-0.5" />
+              <div>
+                <div className="flex items-center">
+                  <h3 className="text-sm font-medium text-quantum-cyan">AI Umpire Insight</h3>
+                  <span className="ml-2 text-xs px-1.5 py-0.5 bg-warning-orange bg-opacity-20 text-warning-orange rounded-full">BETA</span>
+                </div>
+                <p className="text-text-standard mt-1">{umpireInsight.insight}</p>
+              </div>
             </div>
           </div>
         )}
@@ -455,7 +540,7 @@ export const MatchScoring: React.FC<MatchScoringProps> = ({ match, onBack }) => 
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <button
             onClick={onBack}
             className="btn btn-ghost flex-1"
@@ -472,6 +557,20 @@ export const MatchScoring: React.FC<MatchScoringProps> = ({ match, onBack }) => 
           >
             <RotateCcw className="h-5 w-5 mr-2" />
             Undo Last Point
+          </button>
+          
+          <button
+            onClick={handleGetUmpireInsight}
+            disabled={isGeneratingInsight}
+            className="btn btn-secondary flex-1 relative"
+          >
+            {isGeneratingInsight ? (
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="h-5 w-5 mr-2" />
+            )}
+            AI Insight
+            <span className="absolute -top-1 -right-1 text-xs px-1.5 py-0.5 bg-warning-orange text-white rounded-full">BETA</span>
           </button>
           
           <button

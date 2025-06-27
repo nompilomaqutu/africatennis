@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Gavel,
   Swords,
-  LogOut
+  LogOut,
+  Sparkles
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useAuthStore } from '../../stores/authStore';
@@ -30,6 +31,7 @@ const Sidebar: React.FC = () => {
     { id: 'tournaments', label: 'Tournaments', icon: Trophy, path: '/tournaments' },
     { id: 'umpire', label: 'Live Scoring', icon: Gavel, path: '/umpire' },
     { id: 'rankings', label: 'Ratings & Rankings', icon: BarChart3, path: '/rankings' },
+    { id: 'ai-coach', label: 'AI Coach', icon: Sparkles, path: '/ai-coach' },
   ];
 
   const handleSignOut = async () => {

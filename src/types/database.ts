@@ -13,6 +13,7 @@ export interface Database {
           profile_picture_url: string | null
           created_at: string
           updated_at: string
+          player_style_analysis: string | null
         }
         Insert: {
           user_id: string
@@ -25,6 +26,7 @@ export interface Database {
           profile_picture_url?: string | null
           created_at?: string
           updated_at?: string
+          player_style_analysis?: string | null
         }
         Update: {
           user_id?: string
@@ -36,6 +38,7 @@ export interface Database {
           bio?: string | null
           profile_picture_url?: string | null
           updated_at?: string
+          player_style_analysis?: string | null
         }
       }
       matches: {
@@ -51,6 +54,7 @@ export interface Database {
           location: string
           created_at: string
           updated_at: string
+          summary: string | null
         }
         Insert: {
           id?: string
@@ -64,6 +68,7 @@ export interface Database {
           location: string
           created_at?: string
           updated_at?: string
+          summary?: string | null
         }
         Update: {
           tournament_id?: string | null
@@ -75,6 +80,7 @@ export interface Database {
           date?: string
           location?: string
           updated_at?: string
+          summary?: string | null
         }
       }
       tournaments: {
@@ -179,73 +185,26 @@ export interface Database {
           metadata?: any | null
         }
       }
-      clubs: {
+      player_stats: {
         Row: {
-          id: string
-          name: string
-          description: string
-          owner_id: string
-          location: string | null
-          website: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          description: string
-          owner_id: string
-          location?: string | null
-          website?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          name?: string
-          description?: string
-          owner_id?: string
-          location?: string | null
-          website?: string | null
-          updated_at?: string
-        }
-      }
-      club_members: {
-        Row: {
-          id: string
-          club_id: string
           user_id: string
-          role: 'member' | 'admin' | 'moderator'
-          joined_at: string
+          win_rate_vs_higher_elo: number
+          win_rate_vs_lower_elo: number
+          avg_tournament_placement: number
+          last_calculated_at: string
         }
         Insert: {
-          id?: string
-          club_id: string
           user_id: string
-          role?: 'member' | 'admin' | 'moderator'
-          joined_at?: string
+          win_rate_vs_higher_elo?: number
+          win_rate_vs_lower_elo?: number
+          avg_tournament_placement?: number
+          last_calculated_at?: string
         }
         Update: {
-          club_id?: string
-          user_id?: string
-          role?: 'member' | 'admin' | 'moderator'
-        }
-      }
-      followers: {
-        Row: {
-          id: string
-          follower_id: string
-          followed_id: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          follower_id: string
-          followed_id: string
-          created_at?: string
-        }
-        Update: {
-          follower_id?: string
-          followed_id?: string
+          win_rate_vs_higher_elo?: number
+          win_rate_vs_lower_elo?: number
+          avg_tournament_placement?: number
+          last_calculated_at?: string
         }
       }
     }
