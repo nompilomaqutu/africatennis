@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, Users, Search, Clock, Target } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Search, Clock, Target, User } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { supabase } from '../../lib/supabase';
 import type { Database } from '../../types/database';
@@ -264,7 +264,7 @@ const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
                       Type at least 2 characters to search for players
                     </div>
                   ) : filteredPlayers.length > 0 ? (
-                    <div className="match-players-grid">
+                    <div className="player-search-results">
                       {filteredPlayers.map((player) => (
                         <div
                           key={player.user_id}
@@ -272,20 +272,23 @@ const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
                             setSelectedPlayer(player);
                             setShowPlayerSearch(false);
                           }}
-                          className="match-player-card"
+                          className="player-search-item"
                         >
                           <div className="player-avatar">
                             {getInitials(player.username)}
                           </div>
-                          <div className="match-player-details">
-                            <div className="match-player-name">{player.username}</div>
-                            <div className={`rating-badge ${getRatingClass(player.skill_level)}`}>
-                              {player.skill_level}
-                            </div>
-                            <div className="match-player-stats">
-                              <span>Rating: {player.elo_rating}</span>
-                              <span>•</span>
-                              <span>{player.matches_played} matches</span>
+                          <div className="player-search-details">
+                            <div className="player-search-name">{player.username}</div>
+                            <div className="player-search-info">
+                              <span className={`player-skill-badge ${player.skill_level}`}>
+                                {player.skill_level}
+                              </span>
+                              <span className="player-rating">
+                                Rating: {player.elo_rating}
+                              </span>
+                              <span className="player-matches">
+                                {player.matches_played} matches
+                              </span>
                             </div>
                           </div>
                         </div>
