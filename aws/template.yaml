@@ -85,12 +85,12 @@ Resources:
             Path: /notifications/new-match
             Method: post
       Policies:
-        - Statement:
-          - Effect: Allow
-            Action:
-              - ses:SendEmail
-              - ses:SendRawEmail
-            Resource: '*'
+      - Statement:
+        - Effect: Allow
+          Action:
+          - ses:SendEmail
+          - ses:SendRawEmail
+          Resource: '*'
 
   AggregateStatsFunction:
     Type: AWS::Serverless::Function
@@ -110,8 +110,6 @@ Resources:
     Properties:
       CodeUri: dist/lambdas/get-matches/
       Handler: index.handler
-      ProvisionedConcurrencyConfig:
-        ProvisionedConcurrentExecutions: 1
       Events:
         Api:
           Type: Api
@@ -119,6 +117,25 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /matches
             Method: get
+
+  GenerateMatchSummaryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/lambdas/generate-match-summary/
+      Handler: index.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /matches/{matchId}/generate-summary
+            Method: post
+      Policies:
+      - Statement:
+        - Effect: Allow
+          Action:
+          - bedrock:InvokeModel
+          Resource: '*'
 
 Outputs:
   ApiEndpoint:

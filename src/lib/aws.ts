@@ -142,6 +142,13 @@ class ApiClient {
     })
   }
 
+  // Match summary generation
+  async generateMatchSummary(matchId: string) {
+    return this.request(`/matches/${matchId}/generate-summary`, {
+      method: 'POST'
+    })
+  }
+
   // Health check
   async healthCheck() {
     return this.request('/health');
