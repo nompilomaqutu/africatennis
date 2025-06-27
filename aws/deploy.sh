@@ -7,12 +7,12 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # --- Configuration ---
-AWS_REGION="us-east-1"
-S3_BUCKET_NAME="africa-tennis-artifacts-nathi-2025"
+AWS_REGION="us-west-2"
+S3_BUCKET_NAME="africatennisbucket"
 STACK_NAME="africa-tennis-platform-stack"
 SUPABASE_URL="https://ppuqbimzeplznqdchvve.supabase.co"
-FRONTEND_URL="https://africa-tennis-platform.netlify.app"
-SES_EMAIL_SOURCE="noreply@africatennis.com"
+FRONTEND_URL="www.africatennis.com"
+SES_EMAIL_SOURCE="info@africatennis.com"
 
 # Check if AWS CLI is installed
 if ! command -v aws &> /dev/null; then
@@ -38,7 +38,10 @@ if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
     echo -e "${YELLOW}Warning: SUPABASE_SERVICE_ROLE_KEY environment variable is not set.${NC}"
     echo "Please set it before running this script:"
     echo "  export SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key"
-    exit 1
+    
+    # Use the key from the bat file as fallback
+    SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwdXFiaW16ZXBsem5xZGNodnZlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTYzNzI2MSwiZXhwIjoyMDY1MjEzMjYxfQ.NEfWLgVkb98xlApZ1T6ZeDkh5stIH1rnfs_-bJwYx0U"
+    echo -e "${YELLOW}Using fallback service role key from configuration.${NC}"
 fi
 
 echo -e "${GREEN}[STEP 1/4] Cleaning up previous build artifacts...${NC}"

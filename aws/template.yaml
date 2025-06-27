@@ -27,12 +27,12 @@ Parameters:
   SesEmailSource:
     Type: String
     Description: Email address to send notifications from
-    Default: noreply@africatennis.com
+    Default: info@africatennis.com
   
   FrontendUrl:
     Type: String
     Description: URL of the frontend application
-    Default: http://localhost:5173
+    Default: www.africatennis.com
 
 Resources:
   # API Gateway
@@ -41,7 +41,7 @@ Resources:
     Properties:
       StageName: prod
       Cors:
-        AllowOrigin: "'https://zp1v56uxy8rdx5ypatb0ockcb9tr6a-oci3--5173--858c0e43.local-credentialless.webcontainer-api.io'"
+        AllowOrigin: "'*'"
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
         AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
 
@@ -85,12 +85,12 @@ Resources:
             Path: /notifications/new-match
             Method: post
       Policies:
-      - Statement:
-        - Effect: Allow
-          Action:
-          - ses:SendEmail
-          - ses:SendRawEmail
-          Resource: '*'
+        - Statement:
+          - Effect: Allow
+            Action:
+              - ses:SendEmail
+              - ses:SendRawEmail
+            Resource: '*'
 
   AggregateStatsFunction:
     Type: AWS::Serverless::Function
@@ -131,11 +131,25 @@ Resources:
             Path: /matches/{matchId}/generate-summary
             Method: post
       Policies:
-      - Statement:
-        - Effect: Allow
-          Action:
-          - bedrock:InvokeModel
-          Resource: '*'
+        - Statement:
+          - Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+            Resource: '*'
+
+  # Health check endpoint
+  HealthCheckFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/lambdas/health-check/
+      Handler: index.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /health
+            Method: get
 
 Outputs:
   ApiEndpoint:

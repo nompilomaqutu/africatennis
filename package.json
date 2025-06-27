@@ -11,7 +11,9 @@
     "test": "cypress open",
     "test:e2e": "cypress run",
     "test:component": "cypress run --component",
-    "test:aws": "jest --config ./aws/jest.config.js"
+    "test:aws": "jest --config ./aws/jest.config.js",
+    "deploy:aws": "cd aws && ./deploy.sh",
+    "check:aws": "cd aws && ./check-deployment.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
