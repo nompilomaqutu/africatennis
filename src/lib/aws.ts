@@ -135,16 +135,16 @@ class ApiClient {
     })
   }
 
-  // Tournament operations
-  async generateTournamentBracket(tournamentId: string) {
-    return this.request(`/tournaments/${tournamentId}/generate-bracket`, {
+  // Match summary generation
+  async generateMatchSummary(matchId: string) {
+    return this.request(`/matches/${matchId}/generate-summary`, {
       method: 'POST'
     })
   }
 
-  // Match summary generation
-  async generateMatchSummary(matchId: string) {
-    return this.request(`/matches/${matchId}/generate-summary`, {
+  // Tournament operations
+  async generateTournamentBracket(tournamentId: string) {
+    return this.request(`/tournaments/${tournamentId}/generate-bracket`, {
       method: 'POST'
     })
   }
