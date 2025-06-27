@@ -14,7 +14,8 @@ import {
   Zap,
   Target,
   Award,
-  Gavel
+  Gavel,
+  Info
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { supabase } from '../lib/supabase';
@@ -54,6 +55,14 @@ interface MatchScoreHistory {
   action: string;
 }
 
+interface ErrorState {
+  visible: boolean;
+  title: string;
+  message: string;
+  details?: string;
+  type: 'error' | 'warning' | 'info';
+}
+
 const UmpirePage: React.FC = () => {
   const { user } = useAuthStore();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -72,6 +81,13 @@ const UmpirePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [pointType, setPointType] = useState<string>('normal');
   const [recentMatches, setRecentMatches] = useState<Match[]>([]);
+  const [error, setError] = useState<ErrorState>({
+    visible: false,
+    title: '',
+    message: '',
+    details: '',
+    type: 'error'
+  });
 
   useEffect(() => {
     loadTournaments();
@@ -177,8 +193,40 @@ const UmpirePage: React.FC = () => {
       setTournamentToStart(null);
     } catch (error: any) {
       console.error('Error starting tournament:', error);
-      alert(`We couldn't start the tournament: ${error.message}. Please check the tournament details and try again.`);
+      
+      // Set user-friendly error message
+      setError({
+        visible: true,
+        title: 'Tournament Start Failed',
+        message: getTournamentErrorMessage(error.message),
+        details: error.message,
+        type: 'error'
+      });
+      
+      setShowStartConfirmation(false);
     }
+  };
+
+  // Function to get user-friendly error messages
+  const getTournamentErrorMessage = (errorMessage: string): string => {
+    if (errorMessage.includes('Tournament needs at least 2 participants')) {
+      return 'This tournament needs at least 2 registered participants before it can be started.';
+    }
+    
+    if (errorMessage.includes('not in registration_closed status')) {
+      return 'The tournament must be in "Registration Closed" status before generating the bracket.';
+    }
+    
+    if (errorMessage.includes('already in progress')) {
+      return 'This tournament is already in progress.';
+    }
+    
+    if (errorMessage.includes('already completed')) {
+      return 'This tournament has already been completed.';
+    }
+    
+    // Default message
+    return 'We encountered an issue starting the tournament. Please try again or contact support if the problem persists.';
   };
 
   const handleStartMatch = async (match: Match) => {
@@ -248,6 +296,10 @@ const UmpirePage: React.FC = () => {
     return '';
   };
 
+  const dismissError = () => {
+    setError({...error, visible: false});
+  };
+
   // Show match details if one is selected
   if (activeMatch) {
     return (
@@ -271,6 +323,45 @@ const UmpirePage: React.FC = () => {
             Manage live tournament matches and scoring for your tournaments
           </p>
         </div>
+
+        {/* Error Message */}
+        {error.visible && (
+          <div className={`bg-glass-bg backdrop-filter-blur border border-glass-border rounded-lg p-4 mb-6 ${
+            error.type === 'error' ? 'border-error-pink' : 
+            error.type === 'warning' ? 'border-warning-orange' : 'border-quantum-cyan'
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                {error.type === 'error' && <AlertTriangle className="h-5 w-5 text-error-pink" />}
+                {error.type === 'warning' && <AlertTriangle className="h-5 w-5 text-warning-orange" />}
+                {error.type === 'info' && <Info className="h-5 w-5 text-quantum-cyan" />}
+              </div>
+              <div className="flex-1">
+                <h3 className={`text-lg font-medium mb-1 ${
+                  error.type === 'error' ? 'text-error-pink' : 
+                  error.type === 'warning' ? 'text-warning-orange' : 'text-quantum-cyan'
+                }`}>
+                  {error.title}
+                </h3>
+                <p className="text-text-standard mb-2">{error.message}</p>
+                {error.details && (
+                  <details className="mt-2">
+                    <summary className="text-sm text-text-subtle cursor-pointer">Technical details</summary>
+                    <p className="mt-1 text-sm text-text-subtle bg-bg-elevated p-2 rounded">{error.details}</p>
+                  </details>
+                )}
+                <div className="mt-3">
+                  <button 
+                    onClick={dismissError}
+                    className="text-sm font-medium px-3 py-1 rounded-md bg-bg-elevated hover:bg-hover-bg"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Quick Access to Matches */}
         {recentMatches.length > 0 && (
