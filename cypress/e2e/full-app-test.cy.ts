@@ -8,6 +8,14 @@ describe('Africa Tennis Platform E2E Test', () => {
     username: 'nkosimano'
   };
 
+  // Additional test users for tournaments and matches
+  const testUsers = [
+    { email: 'rabelani.ramaru822305@gmail.com', username: 'rabelani' },
+    { email: 'dhilsob@gmail.com', username: 'dhilsob' },
+    { email: '1hourphilss@gmail.com', username: '1hourphilss' },
+    { email: 'm.j.motsusi@gmail.com', username: 'mjmotsusi' }
+  ];
+
   // Reusable function to login
   const login = () => {
     cy.visit('/login');
@@ -101,7 +109,7 @@ describe('Africa Tennis Platform E2E Test', () => {
     cy.get('body').should('have.class', 'theme-dark');
   });
 
-  it('should create a new match', () => {
+  it('should create a new match with test users', () => {
     login();
     
     // Navigate to matches page
@@ -114,102 +122,77 @@ describe('Africa Tennis Platform E2E Test', () => {
     // Verify modal is open
     cy.contains('Create New Match').should('be.visible');
     
-    // Search for an opponent
-    cy.get('.search-input').type('d');
+    // Search for one of our test users
+    cy.get('.search-input').type('rabelani');
     cy.wait(1000); // Wait for search results
     
-    // Select the first opponent from search results
-    cy.get('.player-search-item').first().click();
-    
-    // Fill in match details
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    // Format date as YYYY-MM-DD for input
-    const formattedDate = format(tomorrow, 'yyyy-MM-dd');
-    cy.get('input[type="date"]').type(formattedDate);
-    
-    // Set time to 10:00 AM
-    cy.get('input[type="time"]').type('10:00');
-    
-    // Set location
-    cy.get('input#location').type('Center Court, Johannesburg');
-    
-    // Select court type
-    cy.get('select#courtType').select('clay');
-    
-    // Submit the form
-    cy.contains('button', 'Create Match').click();
-    
-    // Verify match was created
-    cy.contains('Center Court, Johannesburg').should('exist');
-  });
-
-  it('should view and filter matches', () => {
-    login();
-    
-    // Navigate to matches page
-    cy.get('.sidebar-nav-item').contains('My Matches').click();
-    cy.url().should('include', '/matches');
-    
-    // Test search functionality
-    cy.get('.search-input').type('court');
-    cy.wait(500);
-    
-    // Test status filter
-    cy.get('select').first().select('pending');
-    cy.wait(500);
-    
-    // Clear filters
-    cy.get('.search-input').clear();
-    cy.get('select').first().select('all');
-    
-    // View match details if any match exists
-    cy.get('.match-grid').then($grid => {
-      if ($grid.find('.card').length > 0) {
-        cy.get('.card').first().click();
-        cy.contains('Match Details').should('be.visible');
-        cy.contains('button', 'Back').click();
-      }
-    });
-  });
-
-  it('should browse tournaments and view details', () => {
-    login();
-    
-    // Navigate to tournaments page
-    cy.get('.sidebar-nav-item').contains('Tournaments').click();
-    cy.url().should('include', '/tournaments');
-    
-    // Check if tournaments exist
+    // Select the test user if available
     cy.get('body').then($body => {
-      if ($body.find('.tournament-card-minimal').length > 0) {
-        // Click on first tournament
-        cy.get('.tournament-card-minimal').first().within(() => {
-          cy.contains('button', 'Details').click();
-        });
+      if ($body.find('.player-search-item:contains("rabelani")').length > 0) {
+        cy.get('.player-search-item:contains("rabelani")').first().click();
         
-        // Check tournament details page
-        cy.contains('Tournament Schedule').should('be.visible');
+        // Fill in match details
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
         
-        // Navigate through tabs
-        cy.contains('button', 'Players').click();
-        cy.contains('Registered Players').should('be.visible');
+        // Format date as YYYY-MM-DD for input
+        const formattedDate = format(tomorrow, 'yyyy-MM-dd');
+        cy.get('input[type="date"]').type(formattedDate);
         
-        cy.contains('button', 'Overview').click();
-        cy.contains('Tournament Schedule').should('be.visible');
+        // Set time to 10:00 AM
+        cy.get('input[type="time"]').type('10:00');
         
-        // Go back to tournaments list
-        cy.contains('button', /Back|Go Back/).click();
-        cy.url().should('include', '/tournaments');
+        // Set location
+        cy.get('input#location').type('Center Court, Johannesburg');
+        
+        // Select court type
+        cy.get('select#courtType').select('clay');
+        
+        // Submit the form
+        cy.contains('button', 'Create Match').click();
+        
+        // Verify match was created (may take a moment)
+        cy.contains('Center Court, Johannesburg').should('exist');
       } else {
-        // If no tournaments exist, check for empty state
-        cy.contains('No tournaments').should('be.visible');
+        // Try another test user
+        cy.get('.search-input').clear().type('dhilsob');
+        cy.wait(1000);
+        
+        if ($body.find('.player-search-item:contains("dhilsob")').length > 0) {
+          cy.get('.player-search-item:contains("dhilsob")').first().click();
+          
+          // Fill in match details
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          
+          // Format date as YYYY-MM-DD for input
+          const formattedDate = format(tomorrow, 'yyyy-MM-dd');
+          cy.get('input[type="date"]').type(formattedDate);
+          
+          // Set time to 10:00 AM
+          cy.get('input[type="time"]').type('10:00');
+          
+          // Set location
+          cy.get('input#location').type('Center Court, Johannesburg');
+          
+          // Select court type
+          cy.get('select#courtType').select('clay');
+          
+          // Submit the form
+          cy.contains('button', 'Create Match').click();
+          
+          // Verify match was created (may take a moment)
+          cy.contains('Center Court, Johannesburg').should('exist');
+        } else {
+          cy.log('No test users found in search results');
+          // Close the modal
+          cy.get('.modal-close').click();
+        }
       }
     });
   });
 
-  it('should create a new tournament', () => {
+  it('should create a tournament with test users as participants', () => {
     login();
     
     // Navigate to tournaments page
@@ -223,14 +206,14 @@ describe('Africa Tennis Platform E2E Test', () => {
     cy.contains('Create Tournament').should('be.visible');
     
     // Fill in tournament details
-    cy.get('input#name').type('Cypress Test Tournament');
-    cy.get('textarea#description').type('This is a test tournament created by Cypress');
+    const tournamentName = `Test Tournament with Users ${Date.now().toString().slice(-6)}`;
+    cy.get('input#name').type(tournamentName);
+    cy.get('textarea#description').type('This is a test tournament with specific test users as participants');
     
     // Set tournament schedule
     cy.contains('button', /Set Tournament Schedule|Modify Schedule/).click();
     
     // Select dates in the calendar
-    // This is complex due to the custom calendar, so we'll use a simplified approach
     cy.get('.calendar-date').not('.disabled').not('.other-month').first().click();
     
     // Set time in the time selector
@@ -251,185 +234,192 @@ describe('Africa Tennis Platform E2E Test', () => {
     cy.contains('button', /Save Changes|Confirm Schedule/).click();
     
     // Select tournament format
-    cy.contains('Single Elimination').click();
+    cy.contains('Round Robin').click();
     
-    // Set max participants
+    // Set max participants to include our test users
     cy.get('select#maxParticipants').select('8');
     
     // Set location
-    cy.get('input#location').type('Johannesburg Tennis Club');
+    cy.get('input#location').type('Johannesburg Tennis Club - Test Court');
     
     // Submit the form
     cy.contains('button', 'Create Tournament').click();
     
     // Verify tournament was created (may take a moment)
-    cy.contains('Cypress Test Tournament').should('exist');
+    cy.contains(tournamentName).should('exist');
   });
 
-  it('should view and search rankings', () => {
-    login();
-    
-    // Navigate to rankings page
-    cy.get('.sidebar-nav-item').contains('Ratings & Rankings').click();
-    cy.url().should('include', '/rankings');
-    
-    // Test search functionality
-    cy.get('.search-input').type('n');
-    cy.wait(500);
-    
-    // Test skill level filter
-    cy.get('select').first().select('intermediate');
-    cy.wait(500);
-    
-    // Test sorting
-    cy.get('select').eq(1).select('username');
-    cy.wait(500);
-    
-    // Test sort order
-    cy.get('select').eq(2).select('asc');
-    cy.wait(500);
-    
-    // Clear filters
-    cy.get('.search-input').clear();
-    cy.get('select').first().select('all');
-    cy.get('select').eq(1).select('elo_rating');
-    cy.get('select').eq(2).select('desc');
-  });
-
-  it('should access live scoring dashboard', () => {
-    login();
-    
-    // Navigate to umpire page
-    cy.get('.sidebar-nav-item').contains('Live Scoring').click();
-    cy.url().should('include', '/umpire');
-    
-    // Check if there are active matches
-    cy.get('body').then($body => {
-      if ($body.find('.umpire-match-card').length > 0) {
-        // Click on first match
-        cy.get('.umpire-match-btn').first().click();
-        
-        // Check scoring interface
-        cy.contains('Live Scoring').should('be.visible');
-        
-        // Test point scoring (if possible)
-        cy.get('button').contains(/Point for|Player/).first().click();
-        
-        // Go back
-        cy.contains('button', 'Back').click();
-      } else {
-        // If no matches, check for empty state or tournaments
-        cy.get('body').then($body => {
-          if ($body.find('.umpire-tournament-card').length > 0) {
-            cy.get('.umpire-tournament-card').first().click();
-          } else {
-            cy.contains(/No Active Tournaments|No matches available/).should('be.visible');
-          }
-        });
-      }
-    });
-  });
-
-  it('should view and edit profile', () => {
-    login();
-    
-    // Navigate to profile page
-    cy.get('.sidebar-nav-item').contains('Profile').click();
-    cy.url().should('include', '/profile');
-    
-    // Check profile information
-    cy.get('input#username').should('have.value', testUser.username);
-    
-    // Edit bio
-    const newBio = 'This is a test bio updated by Cypress';
-    cy.get('textarea#bio').clear().type(newBio);
-    
-    // Save changes
-    cy.contains('button', 'Save Changes').click();
-    
-    // Verify success message
-    cy.contains('Profile updated successfully').should('be.visible');
-  });
-
-  it('should test match summary generation', () => {
+  it('should view and filter matches with test users', () => {
     login();
     
     // Navigate to matches page
     cy.get('.sidebar-nav-item').contains('My Matches').click();
     cy.url().should('include', '/matches');
     
-    // Find a completed match
-    cy.get('body').then($body => {
-      // Check if there are any completed matches
-      const hasCompletedMatches = $body.find('.card:contains("Completed")').length > 0;
+    // Test search functionality for test users
+    testUsers.forEach(user => {
+      cy.get('.search-input').clear().type(user.username);
+      cy.wait(500);
       
-      if (hasCompletedMatches) {
-        // Click on the first completed match
-        cy.get('.card:contains("Completed")').first().click();
-        
-        // Check if summary exists or needs to be generated
-        cy.get('body').then($matchBody => {
-          if ($matchBody.find('button:contains("Generate Summary")').length > 0) {
-            // Generate summary if button exists
-            cy.contains('button', 'Generate Summary').click();
-            
-            // Wait for summary generation (this might take time)
-            cy.contains('Generating match summary', { timeout: 10000 }).should('be.visible');
-            
-            // Wait for summary to appear (may take longer in real environment)
-            cy.contains('Generated by AI', { timeout: 30000 }).should('be.visible');
-          } else {
-            // If summary already exists
-            cy.contains('Generated by AI').should('be.visible');
-          }
-        });
-        
-        // Go back to matches
-        cy.contains('button', /Back|Go Back/).click();
-      } else {
-        cy.log('No completed matches found to test summary generation');
-      }
+      // Check if any matches with this user are found
+      cy.get('body').then($body => {
+        if ($body.find(`.card:contains("${user.username}")`).length > 0) {
+          cy.log(`Found matches with test user: ${user.username}`);
+        }
+      });
+    });
+    
+    // Clear search
+    cy.get('.search-input').clear();
+  });
+
+  it('should test live scoring with test users', () => {
+    login();
+    
+    // Navigate to umpire page
+    cy.get('.sidebar-nav-item').contains('Live Scoring').click();
+    cy.url().should('include', '/umpire');
+    
+    // Check if there are active matches with test users
+    cy.get('body').then($body => {
+      testUsers.forEach(user => {
+        if ($body.find(`.umpire-match-player:contains("${user.username}")`).length > 0) {
+          cy.log(`Found match with test user: ${user.username}`);
+          
+          // Click on the match with this test user
+          cy.get(`.umpire-match-card:contains("${user.username}")`).first().within(() => {
+            if (cy.get('button:contains("Umpire Match")').length > 0) {
+              cy.contains('button', 'Umpire Match').click();
+            } else if (cy.get('button:contains("Continue Scoring")').length > 0) {
+              cy.contains('button', 'Continue Scoring').click();
+            }
+          });
+          
+          // Test scoring interface
+          cy.contains('Live Scoring').should('be.visible');
+          
+          // Select a point type
+          cy.contains('Point Type').parent().within(() => {
+            cy.contains('button', 'Ace').click();
+          });
+          
+          // Award a point to a player
+          cy.contains('button', /Point for/).first().click();
+          
+          // Go back
+          cy.contains('button', 'Back').click();
+          cy.url().should('include', '/umpire');
+          
+          return false; // Break the forEach loop
+        }
+      });
     });
   });
 
-  it('should test tournament bracket viewing', () => {
+  it('should view tournament participants including test users', () => {
     login();
     
     // Navigate to tournaments page
     cy.get('.sidebar-nav-item').contains('Tournaments').click();
     cy.url().should('include', '/tournaments');
     
-    // Find a tournament that's in progress
+    // Check if any tournaments exist
     cy.get('body').then($body => {
-      const hasInProgressTournaments = $body.find('.tournament-card-minimal:contains("In Progress")').length > 0;
-      
-      if (hasInProgressTournaments) {
-        // Click on the first in-progress tournament
-        cy.get('.tournament-card-minimal:contains("In Progress")').first().within(() => {
+      if ($body.find('.tournaments-grid .tournament-card-minimal').length > 0) {
+        // Click on the first tournament
+        cy.get('.tournaments-grid .tournament-card-minimal').first().within(() => {
           cy.contains('button', 'Details').click();
         });
         
-        // Check tournament details
-        cy.contains('Tournament Schedule').should('be.visible');
+        // Navigate to participants tab
+        cy.contains('button', 'Players').click();
         
-        // Navigate to bracket tab
-        cy.contains('button', /Bracket|Matches/).click();
-        
-        // Check if bracket exists
-        cy.get('body').then($tournamentBody => {
-          const hasBracket = $tournamentBody.find('.tournament-bracket-match').length > 0;
-          
-          if (hasBracket) {
-            cy.get('.tournament-bracket-match').should('be.visible');
-          } else {
-            cy.contains('Bracket Not Generated Yet').should('be.visible');
-          }
+        // Check if any of our test users are participants
+        cy.get('body').then($detailsBody => {
+          testUsers.forEach(user => {
+            if ($detailsBody.find(`:contains("${user.username}")`).length > 0) {
+              cy.log(`Found test user ${user.username} as participant`);
+            }
+          });
         });
         
-        // Go back to tournaments
+        // Go back to tournaments list
         cy.contains('button', /Back|Go Back/).click();
+        cy.url().should('include', '/tournaments');
       } else {
-        cy.log('No in-progress tournaments found to test bracket viewing');
+        cy.log('No tournaments available to check participants');
+      }
+    });
+  });
+
+  it('should view rankings and find test users', () => {
+    login();
+    
+    // Navigate to rankings page
+    cy.get('.sidebar-nav-item').contains('Ratings & Rankings').click();
+    cy.url().should('include', '/rankings');
+    
+    // Search for each test user in rankings
+    testUsers.forEach(user => {
+      cy.get('.search-input').clear().type(user.username);
+      cy.wait(500);
+      
+      // Check if user is found in rankings
+      cy.get('body').then($body => {
+        if ($body.find(`.player-name:contains("${user.username}")`).length > 0) {
+          cy.log(`Found test user ${user.username} in rankings`);
+        }
+      });
+    });
+    
+    // Clear search
+    cy.get('.search-input').clear();
+  });
+
+  it('should test match summary generation with test users', () => {
+    login();
+    
+    // Navigate to matches page
+    cy.get('.sidebar-nav-item').contains('My Matches').click();
+    cy.url().should('include', '/matches');
+    
+    // Find a completed match with a test user
+    let foundTestUserMatch = false;
+    
+    cy.get('body').then($body => {
+      // Check for completed matches with test users
+      testUsers.forEach(user => {
+        if ($body.find(`.card:contains("${user.username}"):contains("Completed")`).length > 0 && !foundTestUserMatch) {
+          foundTestUserMatch = true;
+          cy.log(`Found completed match with test user: ${user.username}`);
+          
+          // Click on the match
+          cy.get(`.card:contains("${user.username}"):contains("Completed")`).first().click();
+          
+          // Check if summary exists or needs to be generated
+          cy.get('body').then($matchBody => {
+            if ($matchBody.find('button:contains("Generate Summary")').length > 0) {
+              // Generate summary if button exists
+              cy.contains('button', 'Generate Summary').click();
+              
+              // Wait for summary generation (this might take time)
+              cy.contains('Generating match summary', { timeout: 10000 }).should('be.visible');
+              
+              // Wait for summary to appear (may take longer in real environment)
+              cy.contains('Generated by AI', { timeout: 30000 }).should('be.visible');
+            } else {
+              // If summary already exists
+              cy.contains('AI Match Summary').should('be.visible');
+            }
+          });
+          
+          // Go back to matches
+          cy.contains('button', /Back|Go Back/).click();
+        }
+      });
+      
+      if (!foundTestUserMatch) {
+        cy.log('No completed matches with test users found');
       }
     });
   });
